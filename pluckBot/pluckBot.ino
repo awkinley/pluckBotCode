@@ -1,12 +1,13 @@
 // Define pin connections & motor's steps per revolution
-const int dirPin = 2;
-const int stepPin = 3;
-const int strumDirPin = 4;
-const int strumStepPin = 5;
+const int dirPin = 4;
+const int stepPin = 5;
+const int strumDirPin = 2;
+const int strumStepPin = 3;
 const int stepsPerRevolution = 200;
 
 const int strumSteps = stepsPerRevolution / 3;
 int stepsLeft = 0;
+int strumStepsLeft = 0;
 
 const int motorPotPin = A1;
 const int guidePotPin = A2;
@@ -33,10 +34,55 @@ bool noteChanging = false;
 #define NOTE_Asharp 10;
 #define NOTE_B 11;
 
-int noteVals[] = {0, 80, 160, 240, 320, 400, 480, 560, 740, 820};
+typedef struct{
+    int midiNote;
+    unsigned int length_ms;
+} Note;
+
+Note marryLamb[30] = {{ 76, 948},
+                    { 74, 948},
+                    { 72, 948},
+                    { 74, 948},
+                    { 76, 948},
+                    { 76, 948},
+                    { 76, 948},
+                    { -1, 1052},
+                    { 74, 948},
+                    { 74, 948},
+                    { 74, 948},
+                    { -1, 1052},
+                    { 76, 948},
+                    { 79, 948},
+                    { 79, 948},
+                    { -1, 1052},
+                    { 76, 948},
+                    { 74, 948},
+                    { 72, 948},
+                    { 74, 948},
+                    { 76, 948},
+                    { 76, 948},
+                    { 76, 948},
+                    { -1, 1052},
+                    { 76, 948},
+                    { 74, 948},
+                    { 74, 948},
+                    { 76, 948},
+                    { 74, 948},
+                    { 72, 948}};
+
+int currentNote = 0;
+
+
+typedef struct{
+    char* name;
+    Note* notes;
+    uint16_t numNotes;
+} Song;
+
+int noteVals[] = {0, 80, 160, 240, 320, 410, 480, 560, 740, 820};
 
 int targetVal = 0;
-
+int lastTime = 0;
 
 bool isHigh = true;
 bool isClockwise = true;
@@ -72,36 +118,64 @@ void setup()
   sei(); // allow interrupts
 }
 
+int midiNoteToTargetVal(int midiNote){
+  switch(midiNote){
+    case 72 :
+      return noteVals[8];
+    case 74 :
+      return noteVals[6];
+    case 76 :
+      return noteVals[4];
+    case 79 :
+      return noteVals[1];
+    default:
+      return 0;
+  }
+}
+
 void strum(){
-  stepsLeft += strumSteps;
+  strumStepsLeft += strumSteps;
 //  Serial.print("strumming, steps left: ");
 //  Serial.print(stepsLeft);
 //  Serial.print("\n");
 }
 void loop()
 {
-  // Set motor direction clockwise
-//  if(isClockwise){
-//    digitalWrite(dirPin, HIGH);  
-//  }
-//  else{
-//    digitalWrite(dirPin, LOW);
-//  }
-//  isClockwise = !isClockwise;
-    if(Serial.available() > 0){
-      int newNoteVal = Serial.parseInt();
-//      Serial.print("new note val: ");
-//      Serial.println(newNoteVal);
-      targetVal = noteVals[newNoteVal];
-      noteChanging = true;
-//      Serial.print("targetVal: ");
-//      Serial.println(targetVal);
-      
-    }
+//    if(Serial.available() > 0){
+//      int newNoteVal = Serial.parseInt();
+//      if(newNoteVal == -1){
+//        strum();
+//      }
+//      else{
+////              Serial.print("new note val: ");
+////      Serial.println(newNoteVal);
+//      targetVal = noteVals[newNoteVal];
+//      noteChanging = true;
+////      Serial.print("targetVal: ");
+////      Serial.println(targetVal);
+//      }
+//    }
 
+  Serial.print(millis());
+  Serial.print("\t");
+  if((millis() - lastTime) > marryLamb[currentNote].length_ms){
+    lastTime = millis();
+    
+    // move to next note
+    currentNote++;
+    if(currentNote == 30){
+      currentNote = 0;
+    }
+    int note = marryLamb[currentNote].midiNote;
+    if(note != -1){
+      targetVal = midiNoteToTargetVal(note);
+      noteChanging = true;
+    }
+  }
   while(stepsLeft > 0){
     __asm__("nop\n\t");
   }
+//  Serial.println("we got here");
   
   int guideVal = targetVal; //analogRead(guidePotPin);
   int motorVal;
@@ -124,7 +198,8 @@ void loop()
   //higher  motorVal implies more in the negative step direction
 
   int diff = abs(guideVal - motorVal);
-  if(diff < 5 && noteChanging){
+  if(diff < 2 && noteChanging){
+    strum();
     noteChanging = false;
     motorRingBuffer[0] = motorVal;
     motorRingBuffer[1] = motorVal;
@@ -133,10 +208,6 @@ void loop()
 //  Serial.print("diff: ");
 //  Serial.println(diff);
   if(diff > 20){
-//    Serial.print("guide val: ");
-//    Serial.print(guideVal);
-//    Serial.print("\nmotor val: ");
-//    Serial.println(motorVal);
     if(guideVal > motorVal){
       digitalWrite(dirPin, LOW);
       float proportionToMove = (float)(diff) / (float)(potMax - potMin);
@@ -164,66 +235,8 @@ void loop()
   }
 
 //  Serial.print("steps left: ");
+//  Serial.print("\t");
 //  Serial.println(stepsLeft);
-//  digitalWrite(dirPin, HIGH);
-//  strum();
-//  delay(2000);
-//  
-//  digitalWrite(dirPin, LOW);
-//  strum();
-//  delay(2000);
-//  stepsLeft = 200;
-//  delay(2000);
-//  strum();
-//  delay(1000);
-//  if(Serial.available() >= 2){
-//    int value = Serial.read();
-//    int value2 = Serial.read();
-//    Serial.write(value);
-//    Serial.print("\n");
-//    strum();
-//  }
-//    int pot = analogRead(potPin);
-//    Serial.println(pot);
-//    if(pot >= 512){
-//      digitalWrite(dirPin, HIGH);
-//    }
-//    else{
-//      digitalWrite(dirPin, LOW);
-//    }
-//    strum();
-//    delay(500);
-
-//  if(isHigh){
-//    digitalWrite(stepPin, HIGH);
-//  }
-//  else{
-//    digitalWrite(stepPin, LOW);
-//  }
-//  isHigh = !isHigh;
-//  delay(1);
-//  // Spin motor slowly
-//  for(int x = 0; x < stepsPerRevolution; x++)
-//  {
-//    digitalWrite(stepPin, HIGH);
-//    delayMicroseconds(2000);
-//    digitalWrite(stepPin, LOW);
-//    delayMicroseconds(2000);
-//  }
-//  delay(1000); // Wait a second
-//  
-//  // Set motor direction counterclockwise
-//  digitalWrite(dirPin, LOW);
-//
-//  // Spin motor quickly
-//  for(int x = 0; x < stepsPerRevolution; x++)
-//  {
-//    digitalWrite(stepPin, HIGH);
-//    delayMicroseconds(1000);
-//    digitalWrite(stepPin, LOW);
-//    delayMicroseconds(1000);
-//  }
-//  delay(1000); // Wait a second
 }
 
 ISR(TIMER1_COMPA_vect){
@@ -232,4 +245,9 @@ ISR(TIMER1_COMPA_vect){
     digitalWrite(stepPin, LOW);
     stepsLeft--;
   }  
+  if(strumStepsLeft > 0){
+    digitalWrite(strumStepPin, HIGH);
+    digitalWrite(strumStepPin, LOW);
+    strumStepsLeft--;
+  }
 }

@@ -5,7 +5,7 @@ const int strumDirPin = 2;
 const int strumStepPin = 3;
 const int stepsPerRevolution = 200;
 
-const int strumSteps = stepsPerRevolution / 3;
+const int strumSteps = 1 + stepsPerRevolution / 3;
 int stepsLeft = 0;
 int strumStepsLeft = 0;
 
@@ -34,10 +34,96 @@ bool noteChanging = false;
 #define NOTE_Asharp 10;
 #define NOTE_B 11;
 
+//#define E2 830
+#define F2 884
+#define G2 841
+#define Gs2 814
+#define A2 777
+#define As2 757
+#define B2 707
+#define C3 669
+#define Cs3 619
+#define D3 583
+#define Ds3 532
+#define E3 477
+#define F3 388
+#define Fs3 304
+#define G3 216
+#define Gb3 158
+#define A3 85
+#define As3 6
+
+
+
 typedef struct{
     int midiNote;
     unsigned int length_ms;
 } Note;
+
+bool isStart = true;
+
+#define SONG sevenNationArmy
+#define SONG_LENGTH 48
+//#define SONG testSong
+//#define SONG_LENGTH 2
+
+Note testSong[2] = 
+{
+  {0, 1000},
+  {1, 1000}
+};
+Note sevenNationArmy[48] = 
+{
+{ 52, 711}, 
+{ 52, 236}, 
+{ 55, 355}, 
+{ 52, 355}, 
+{ 50, 236}, 
+{ 48, 949}, 
+{ 47, 949}, 
+{ 52, 711}, 
+{ 52, 236}, 
+{ 55, 355}, 
+{ 52, 355}, 
+{ 50, 236}, 
+{ 48, 355}, 
+{ 50, 355}, 
+{ 48, 236}, 
+{ 47, 949}, 
+{ 52, 711}, 
+{ 52, 236}, 
+{ 55, 355}, 
+{ 52, 355}, 
+{ 50, 236}, 
+{ 48, 949}, 
+{ 47, 949}, 
+{ 52, 711}, 
+{ 52, 236}, 
+{ 55, 355}, 
+{ 52, 355}, 
+{ 50, 236}, 
+{ 48, 355}, 
+{ 50, 355}, 
+{ 48, 236}, 
+{ 47, 949}, 
+{ 52, 711}, 
+{ 52, 236}, 
+{ 55, 355}, 
+{ 52, 355}, 
+{ 50, 236}, 
+{ 48, 949}, 
+{ 47, 949}, 
+{ 52, 711}, 
+{ 52, 236}, 
+{ 55, 355}, 
+{ 52, 355}, 
+{ 50, 236}, 
+{ 48, 355}, 
+{ 50, 355}, 
+{ 48, 236}, 
+{ 47, 949}
+};
+
 
 Note marryLamb[30] = {{ 76, 948},
                     { 74, 948},
@@ -82,7 +168,7 @@ typedef struct{
 int noteVals[] = {0, 80, 160, 240, 320, 410, 480, 560, 740, 820};
 
 int targetVal = 0;
-int lastTime = 0;
+unsigned long lastTime = 0;
 
 bool isHigh = true;
 bool isClockwise = true;
@@ -95,8 +181,8 @@ void setup()
   pinMode(strumDirPin, OUTPUT);
   
 
-  digitalWrite(strumStepPin, LOW);
-  digitalWrite(strumDirPin, LOW);
+//  digitalWrite(strumStepPin, LOW);
+  digitalWrite(strumDirPin, HIGH);
   pinMode(motorPotPin, INPUT);
   pinMode(guidePotPin, INPUT);
 
@@ -107,7 +193,7 @@ void setup()
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1 = 0;
-  OCR1A = 75; // = (16*10^6) / (2000 * 1024) - 1 (must be <256)
+  OCR1A = 50; // = (16*10^6) / (2000 * 1024) - 1 (must be <256)
   // turn on CTC mode
   TCCR1B |= (1 << WGM12);
   // Set CS01 and CS00 bits for 1024 prescaler
@@ -120,6 +206,20 @@ void setup()
 
 int midiNoteToTargetVal(int midiNote){
   switch(midiNote){
+    case 0:
+      return potMin;
+    case 1:
+      return potMax;
+    case 47:
+      return Cs3;
+    case 48:
+      return D3;
+    case 50:
+      return E3;
+    case 52:
+      return Fs3;
+    case 55:
+      return A3;
     case 72 :
       return noteVals[8];
     case 74 :
@@ -156,20 +256,26 @@ void loop()
 //      }
 //    }
 
-  Serial.print(millis());
-  Serial.print("\t");
-  if((millis() - lastTime) > marryLamb[currentNote].length_ms){
+  if(isStart){
+    strum();
+    lastTime = millis();
+    isStart = false;
+  }
+//  Serial.print(millis());
+//  Serial.print("\t");
+  if((millis() - lastTime) > SONG[currentNote].length_ms){
     lastTime = millis();
     
     // move to next note
     currentNote++;
-    if(currentNote == 30){
+    if(currentNote == SONG_LENGTH){
       currentNote = 0;
     }
-    int note = marryLamb[currentNote].midiNote;
+    int note = SONG[currentNote].midiNote;
     if(note != -1){
       targetVal = midiNoteToTargetVal(note);
       noteChanging = true;
+      strum();
     }
   }
   while(stepsLeft > 0){
@@ -191,15 +297,16 @@ void loop()
     }
     motorVal = averageMotorVal / 3.0;
   }
-  
+//  
 
 //  Serial.print("motorVal: ");
-  Serial.println(motorVal);
+  int potVal = analogRead(motorPotPin);
+  Serial.println(potVal);
   //higher  motorVal implies more in the negative step direction
 
   int diff = abs(guideVal - motorVal);
   if(diff < 2 && noteChanging){
-    strum();
+//    strum();
     noteChanging = false;
     motorRingBuffer[0] = motorVal;
     motorRingBuffer[1] = motorVal;
@@ -233,6 +340,7 @@ void loop()
 //      stepsLeft += 5;
     }
   }
+
 
 //  Serial.print("steps left: ");
 //  Serial.print("\t");

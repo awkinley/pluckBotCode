@@ -30,14 +30,14 @@ def noteToKeypad(note):
 		return 1
 
 # read in the file
-pattern = midi.read_midifile("Marry_Had_A_Little_Lamb.mid")
+pattern = midi.read_midifile("7nationarmy.mid")
 # get the track data
 track = pattern[0]
 
 last_note = -1
 
 # could be read from midi file but this is simpler and allows me to slow down songs if necessary
-tempo = 60.0
+tempo = 120.0
 secondsPerBeat = 60.0 / tempo
 
 # there are usually 480 midi 'ticks' in a beat of the song

@@ -9,11 +9,11 @@ const int stepPin = 5;
 
 const int firstLEDPin = 7;
 
-const int stepsPerRevolution = 200;
-const int strumSteps = stepsPerRevolution / 3;
+const float stepsPerRevolution = 200.0;
+const float strumSteps = stepsPerRevolution / 3.0;
 
 int stepsLeft = 0;
-int strumStepsLeft = 0;
+float strumStepsLeft = 0;
 
 const int motorPotPin = A1;
 const int buttonPin = 6;
@@ -29,17 +29,21 @@ bool noteChanging = false;
 
 bool isStart = true;
 
-#define NUM_SONGS 2
-Song songs[NUM_SONGS] = {sevenNationArmySong, marryLambSong};
+
+Note testSong[2] =
+{
+  {0, 1000},
+  {1, 1000}
+};
+Song testSongSong = {"test", testSong, 2};
+
+#define NUM_SONGS 4
+Song songs[NUM_SONGS] = {miiSong, smashmouthSong, sevenNationArmySong, axelFSong};
 int currentSongIndex = 0;
 int currentSongLength = songs[currentSongIndex].numNotes;
 Note* currentNotes = songs[currentSongIndex].notes;
 
-//Note testSong[2] =
-//{
-//  {0, 1000},
-//  {1, 1000}
-//};
+
 
 int currentNote = 0;
 
@@ -48,7 +52,7 @@ int targetVal = 0;
 unsigned long lastTime = 0;
 unsigned long pauseTime = 0;
 
-bool isPlaying = true;
+bool isPlaying = false;
 bool buttonPressed = false;
 long lastButtonPress = 0;
 const long debounceDelay = 200;
@@ -122,6 +126,9 @@ void turnOnSpecificLED(int num) {
 void loop()
 {
 
+//    int potVal = analogRead(motorPotPin);
+//    Serial.println(potVal);
+//    return;
   int buttonState = digitalRead(buttonPin);
   //button is LOW when depressed, HIGH when untouched
   long buttonTime = millis();
@@ -186,10 +193,12 @@ void loop()
         }
         else {
           if (isPlaying) {
+            Serial.println("pausing");
             isPlaying = false;
             pauseTime = millis();
           }
           else {
+            Serial.println("unpausing");
             isPlaying = true;
             lastTime += millis() - pauseTime;
           }
@@ -201,7 +210,9 @@ void loop()
 
   if (isPlaying) {
     if (isStart) {
-      strum();
+      if(currentNotes[0].midiNote != -1){
+        strum();  
+      }
       lastTime = millis();
       isStart = false;
     }
@@ -216,7 +227,7 @@ void loop()
       }
       int note = currentNotes[currentNote].midiNote;
       if (note != -1) {
-        targetVal = midiNoteToTargetVal(note);
+        targetVal = midiNoteToTargetVal(note + 2);
         noteChanging = true;
         strum();
       }
@@ -243,8 +254,7 @@ void loop()
 
     //  Serial.print("motorVal: ");
 
-    //  int potVal = analogRead(motorPotPin);
-    //  Serial.println(potVal);
+    
 
     int diff = abs(targetVal - motorVal);
     if (diff < 2 && noteChanging) {
@@ -255,7 +265,7 @@ void loop()
     }
 
 
-    if (diff > 20) {
+    if (noteChanging) {
       //higher  motorVal implies more in the negative step direction
       if (targetVal > motorVal) {
         digitalWrite(dirPin, LOW);
@@ -282,7 +292,7 @@ ISR(TIMER1_COMPA_vect) {
     digitalWrite(stepPin, LOW);
     stepsLeft--;
   }
-  if (strumStepsLeft > 0) {
+  if (strumStepsLeft >= 1.0) {
     digitalWrite(strumStepPin, HIGH);
     digitalWrite(strumStepPin, LOW);
     strumStepsLeft--;

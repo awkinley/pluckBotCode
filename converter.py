@@ -10,7 +10,7 @@ def midiToNotes(filename, tempo):
 	pattern = midi.read_midifile(filename)
 	# get the track data
 	track = pattern[0]
-
+	print(pattern)
 	last_note = -1
 
 	# could be read from midi file but this is simpler and allows me to slow down songs if necessary
@@ -22,7 +22,7 @@ def midiToNotes(filename, tempo):
 	miliSecondsPerTick = (secondsPerBeat / ticksPerBeat) * 1000.0
 
 	for event in track:
-		if isinstance(event, midi.NoteOnEvent):
+		if isinstance(event, midi.NoteOnEvent) or isinstance(event, midi.NoteOffEvent) :
 			data = event.data
 			note = data[0]
 			velocity = data[1]
@@ -40,7 +40,7 @@ def midiToNotes(filename, tempo):
 					notes.append(newNote)
 
 			# if this not velocity is 0 that means the last note has ended
-			if velocity == 0:
+			if velocity == 0 or isinstance(event,midi.NoteOffEvent):
 				if note != last_note: # if it's trying to end anything other than the previous note is started, error
 					print("there was an issue, too many notes trying to play")
 				else:
@@ -90,7 +90,7 @@ def main():
 	if output_filename[-2:] != ".h":
 		print("the file name you gave is not a .h, this is not allowed")
 		return
-	
+	print(notes)
 	createHeaderFile(notes, output_filename)
 
 	print("the file has been created!\n")

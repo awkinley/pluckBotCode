@@ -4,23 +4,29 @@
 #define Fs2 860 //need to calibrate
 #define G2 841
 #define Gs2 814
-#define A2 777
-#define As2 757
-#define B2 707
-#define C3 669
-#define Cs3 619
-#define D3 583
-#define Ds3 532
-#define E3 477
-#define F3 388
-#define Fs3 304
-#define G3 216
-#define Gs3 158
-#define A3 85
-#define As3 6
+#define A2 458
+#define As2 457
+#define B2 446
+#define C3 439
+#define Cs3 422
+#define D3 379
+#define Ds3 360
+#define E3 346
+#define F3 320
+#define Fs3 292
+#define G3 244
+#define Gs3 225
+#define A3 186
+#define As3 147
+#define B3 105
+#define C4 62
 
 int midiNoteToTargetVal(int midiNote){
   switch(midiNote){
+    case 0:
+      return 883;
+    case 1:
+      return 0;
   	case 41:
       return F2;
     case 42:
